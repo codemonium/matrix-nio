@@ -17,4 +17,4 @@
 import logbook
 
 logger_group = logbook.LoggerGroup()
-logger_group.level = logbook.CRITICAL
+logger_group.level = logbook.DEBUG
