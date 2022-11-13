@@ -749,6 +749,7 @@ class Schemas:
                     },
                     "session_id": {"type": "string"},
                     "session_key": {"type": "string"},
+                    "org.matrix.msc3061.shared_history": {"type": "boolean"},
                 },
                 "required": [
                     "algorithm",

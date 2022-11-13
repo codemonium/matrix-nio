@@ -1237,10 +1237,13 @@ class Olm:
         if isinstance(event, (BadEvent, UnknownBadEvent)):
             return event
 
-        if not self._should_accept_forward(sender, sender_key, event):
-            return None
-
         content = payload["content"]
+        shared_history = content.get("org.matrix.msc3061.shared_history")
+
+        if not shared_history and not self._should_accept_forward(
+            sender, sender_key, event
+        ):
+            return None
 
         session_sender_key = content["sender_key"]
         signing_key = content["sender_claimed_ed25519_key"]
@@ -1261,11 +1264,12 @@ class Olm:
         if self.inbound_group_store.add(session):
             self.save_inbound_group_session(session)
 
-        key_request = self.outgoing_key_requests.pop(event.session_id)
-        self.store.remove_outgoing_key_request(key_request)
-        self.outgoing_to_device_messages.append(
-            key_request.as_cancellation(self.user_id, self.device_id)
-        )
+        if event.session_id in self.outgoing_key_requests:
+            key_request = self.outgoing_key_requests.pop(event.session_id)
+            self.store.remove_outgoing_key_request(key_request)
+            self.outgoing_to_device_messages.append(
+                key_request.as_cancellation(self.user_id, self.device_id)
+            )
 
         return event
 
