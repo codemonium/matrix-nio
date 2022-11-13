@@ -979,6 +979,17 @@ class Olm:
             logger.warn(e)
             return
 
+        existing_session = self.inbound_group_store.get(room_id, sender_key, session_id)
+        if existing_session:
+            old_index = existing_session.first_known_index
+            new_index = session.first_known_index
+            if old_index <= new_index:
+                logger.info(
+                    "Keeping existing session because it can decrypt more: "
+                    f"first_known_index {old_index} <= {new_index}"
+                )
+                return
+
         self.inbound_group_store.add(session)
         self.save_inbound_group_session(session)
 
