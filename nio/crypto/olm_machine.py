@@ -476,6 +476,7 @@ class Olm:
         group_session,  # type: InboundGroupSession
         session,  # type: Session
         device,  # type: OlmDevice
+        shared_history=False,
     ):
         # type: (...) -> ToDeviceMessage
         """Encrypt a group session to be forwarded as a to-device message."""
@@ -489,6 +490,7 @@ class Olm:
             "session_key": group_session.export_session(
                 group_session.first_known_index
             ),
+            "org.matrix.msc3061.shared_history": shared_history,
         }
 
         olm_dict = self._olm_encrypt(

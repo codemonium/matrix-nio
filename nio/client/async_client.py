@@ -84,6 +84,7 @@ from ..events import (
     ToDeviceEvent,
 )
 from ..exceptions import (
+    EncryptionError,
     GroupEncryptionError,
     LocalProtocolError,
     MembersSyncError,
@@ -2236,6 +2237,49 @@ class AsyncClient(Client):
                 invited to.
             user_id (str): The user id of the user that should be invited.
         """
+
+        if self.olm:
+            try:
+                room = self.rooms[room_id]
+            except KeyError:
+                raise LocalProtocolError(f"No such room with id {room_id} found.")
+
+            if room.encrypted:
+                # Running keys_query first ensures that get_missing_sessions
+                # will correctly handle a user who has just logged in for the
+                # first time.
+                #
+                # See _handle_key_query and _handle_key_claiming for more information.
+                self.users_for_key_query.add(user_id)
+                if self.should_query_keys:
+                    await self.keys_query()
+
+                missing_sessions = self.olm.get_missing_sessions([user_id])
+                if missing_sessions:
+                    await self.keys_claim(missing_sessions)
+
+                inbound_group_store = self.olm.inbound_group_store[room_id]
+                for sender_key in inbound_group_store:
+                    for session_id in inbound_group_store[sender_key]:
+                        group_session = self.olm.inbound_group_store.get(
+                            room_id, sender_key, session_id
+                        )
+                        no_device = True
+                        for device in self.device_store.active_user_devices(user_id):
+                            no_device = False
+                            session = self.olm.session_store.get(device.curve25519)
+                            if not session:
+                                raise EncryptionError(
+                                    f"No Olm session found for {device.user_id} and device {device.id}"
+                                )
+                            self.outgoing_to_device_messages.append(
+                                self.olm._encrypt_forwarding_key(
+                                    room_id, group_session, session, device, True
+                                )
+                            )
+                        if no_device:
+                            raise LocalProtocolError(f"No device found for {user_id}")
+
         method, path, data = Api.room_invite(
             self.access_token,
             room_id,
