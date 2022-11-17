@@ -159,7 +159,10 @@ class MegolmInboundSessions(Model):
     fp_key = TextField()
     room_id = TextField()
     session = ByteField()
-    session_id = TextField(primary_key=True)
+    session_id = TextField()
+
+    class Meta:
+        constraints = [SQL("UNIQUE(session_id,account_id)")]
 
 
 class ForwardedChains(Model):
