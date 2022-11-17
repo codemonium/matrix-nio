@@ -300,11 +300,19 @@ class MatrixStore:
 
         MegolmInboundSessions.update(
             {MegolmInboundSessions.session: session.pickle(self.pickle_key)}
-        ).where(MegolmInboundSessions.session_id == session.id).execute()
+        ).where(
+            (MegolmInboundSessions.session_id == session.id)
+            & (MegolmInboundSessions.account_id == account.id)
+        ).execute()
+
+        session_row = MegolmInboundSessions.get(
+            MegolmInboundSessions.session_id == session.id,
+            MegolmInboundSessions.account_id == account.id,
+        )
 
         # TODO, use replace many here
         for chain in session.forwarding_chain:
-            ForwardedChains.replace(sender_key=chain, session=session.id).execute()
+            ForwardedChains.replace(sender_key=chain, session=session_row.id).execute()
 
     @use_database
     def load_device_keys(self):
