@@ -19,6 +19,7 @@ from functools import wraps
 from typing import Dict, List, Optional
 
 from peewee import DoesNotExist, SqliteDatabase
+from playhouse.migrate import migrate, SqliteMigrator
 from playhouse.sqliteq import SqliteQueueDatabase
 
 from ..crypto import (
@@ -44,6 +45,7 @@ from . import (
     KeyStore,
     MegolmInboundSessions,
     OlmSessions,
+    OlmSessions_v2,
     OutgoingKeyRequests,
     StoreVersion,
     SyncTokens,
@@ -131,6 +133,40 @@ class MatrixStore:
             self.database.create_tables([DeviceKeys, DeviceTrustState])
         self._update_version(2)
 
+    def upgrade_to_v3(self):
+        with self.database.bind_ctx(self.models):
+            if not self.database.table_exists("olmsessions"):
+                self._update_version(3)
+                return
+
+        migrator = SqliteMigrator(self.database)
+        migrate(migrator.rename_table("olmsessions", "olmsessions_v2"))
+
+        with self.database.bind_ctx(self.models):
+            self.database.create_tables([OlmSessions])
+            query = OlmSessions_v2.select(
+                OlmSessions_v2.creation_time,
+                OlmSessions_v2.last_usage_date,
+                OlmSessions_v2.sender_key,
+                OlmSessions_v2.account,
+                OlmSessions_v2.session,
+                OlmSessions_v2.session_id,
+            )
+            fields = [
+                OlmSessions.creation_time,
+                OlmSessions.last_usage_date,
+                OlmSessions.sender_key,
+                OlmSessions.account,
+                OlmSessions.session,
+                OlmSessions.session_id,
+            ]
+            OlmSessions.insert_from(query, fields).execute()
+
+        with self.database.bind_ctx([OlmSessions_v2]):
+            self.database.drop_tables([OlmSessions_v2], safe=True)
+
+        self._update_version(3)
+
     def __post_init__(self):
         self.database_name = self.database_name or f"{self.user_id}_{self.device_id}.db"
         self.database_path = os.path.join(self.store_path, self.database_name)
@@ -142,6 +178,8 @@ class MatrixStore:
         # Update the store if it's an old version here.
         if store_version == 1:
             self.upgrade_to_v2()
+        if store_version == 2:
+            self.upgrade_to_v3()
 
         with self.database.bind_ctx(self.models):
             self.database.create_tables(self.models)

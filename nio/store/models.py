@@ -81,7 +81,7 @@ class Accounts(Model):
         constraints = [SQL("UNIQUE(user_id,device_id)")]
 
 
-class OlmSessions(Model):
+class OlmSessions_v2(Model):
     creation_time = DateField()
     last_usage_date = DateField()
     sender_key = TextField()
@@ -90,6 +90,23 @@ class OlmSessions(Model):
     )
     session = ByteField()
     session_id = TextField(primary_key=True)
+
+    class Meta:
+        table_name = "olmsessions_v2"
+
+
+class OlmSessions(Model):
+    creation_time = DateField()
+    last_usage_date = DateField()
+    sender_key = TextField()
+    account = ForeignKeyField(
+        model=Accounts, backref="olm_sessions", on_delete="CASCADE"
+    )
+    session = ByteField()
+    session_id = TextField()
+
+    class Meta:
+        constraints = [SQL("UNIQUE(session_id,account_id)")]
 
 
 class DeviceKeys_v1(Model):

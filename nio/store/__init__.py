@@ -29,6 +29,7 @@ if package_installed("olm"):
         Keys,
         MegolmInboundSessions,
         OlmSessions,
+        OlmSessions_v2,
         OutgoingKeyRequests,
         StoreVersion,
         SyncTokens,
