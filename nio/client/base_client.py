@@ -1114,6 +1114,19 @@ class Client:
         self.olm.import_keys(infile, passphrase)
 
     @store_loaded
+    def populate_group_sessions(self, room_id: str):
+        """Add Megolm sessions for all events in the room.
+
+        You can use this method to enable users to decrypt existing messages
+        while previewing an encrypted public room.
+
+        Args:
+            room_id (str): The ID of the room for which we should fetch the
+                Megolm sessions.
+        """
+        self.olm.populate_group_sessions(room_id)
+
+    @store_loaded
     def get_missing_sessions(self, room_id: str) -> Dict[str, List[str]]:
         """Get users and devices for which we don't have active Olm sessions.
 

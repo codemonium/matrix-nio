@@ -1009,6 +1009,15 @@ class Olm:
         )
         logger.info(f"Created outbound group session for {room_id}")
 
+    def populate_group_sessions(self, room_id: str):
+        # type: (str) -> None
+        logger.info(f"Populating inbound group sessions for {room_id}")
+
+        sessions = self.store.load_all_inbound_group_sessions(room_id)
+
+        for s in sessions:
+            self.inbound_group_store.add(s)
+
     def get_missing_sessions(self, users):
         # type: (List[str]) -> Dict[str, List[str]]
         missing = defaultdict(list)  # type: DefaultDict[str, List[str]]

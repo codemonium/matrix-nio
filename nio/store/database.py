@@ -318,6 +318,35 @@ class MatrixStore:
         return store
 
     @use_database
+    def load_all_inbound_group_sessions(self, room_id: str):
+        # type: () -> List[InboundGroupSession]
+        """Load Megolm sessions for all accounts from the database.
+
+        Args:
+            room_id (str): The ID of the room whose sessions to load.
+
+        Returns:
+            ``List`` containing all the loaded sessions.
+        """
+        sessions = []
+
+        query = MegolmInboundSessions.select().where(
+            MegolmInboundSessions.room_id == room_id
+        )
+        for s in query:
+            session = InboundGroupSession.from_pickle(
+                s.session,
+                s.fp_key,
+                s.sender_key,
+                s.room_id,
+                self.pickle_key,
+                [chain.sender_key for chain in s.forwarded_chains],
+            )
+            sessions.append(session)
+
+        return sessions
+
+    @use_database
     def save_inbound_group_session(self, session):
         """Save the provided Megolm inbound group session to the database.
 
