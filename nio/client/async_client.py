@@ -2214,6 +2214,12 @@ class AsyncClient(Client):
         This tells the server to join the given room.
         If the room is not public, the user must be invited.
 
+        As a side effect, this method also persists all Megolm sessions for the
+        given room that are currently in memory. Since this includes the
+        sessions populated while previewing an encrypted public room, the user
+        can continue to decrypt existing messages after joining the room even
+        if Pantalaimon restarts.
+
         Calls receive_response() to update the client state if necessary.
 
         Returns either a `JoinResponse` if the request was successful or
@@ -2222,6 +2228,17 @@ class AsyncClient(Client):
         Args:
             room_id: The room id or alias of the room to join.
         """
+
+        if self.olm and self.store:
+            inbound_group_store = self.olm.inbound_group_store[room_id]
+            if inbound_group_store:
+                for sender_key in inbound_group_store:
+                    for session_id in inbound_group_store[sender_key]:
+                        group_session = self.olm.inbound_group_store.get(
+                            room_id, sender_key, session_id
+                        )
+                        self.store.save_inbound_group_session(group_session)
+
         method, path, data = Api.join(self.access_token, room_id)
         return await self._send(JoinResponse, method, path, data)
 
