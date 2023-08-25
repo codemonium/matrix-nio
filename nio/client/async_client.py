@@ -53,7 +53,7 @@ from aiohttp import (
     TraceConfig,
 )
 from aiohttp.client_exceptions import ClientConnectionError
-from aiohttp.connector import Connection
+from aiohttp.connector import Connection, TCPConnector
 from aiohttp_socks import ProxyConnector
 
 from ..api import (
@@ -283,7 +283,12 @@ def client_session(func):
             trace = TraceConfig()
             trace.on_request_chunk_sent.append(on_request_chunk_sent)
 
-            connector = ProxyConnector.from_url(self.proxy) if self.proxy else None
+            limitless_tcp_connector = TCPConnector(limit=0)
+            connector = (
+                ProxyConnector.from_url(self.proxy)
+                if self.proxy
+                else limitless_tcp_connector
+            )
             self.client_session = ClientSession(
                 timeout=ClientTimeout(total=self.config.request_timeout),
                 trace_configs=[trace],
