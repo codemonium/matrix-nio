@@ -1595,11 +1595,16 @@ class AsyncClient(Client):
                             ignore_unverified_devices=ignore_unverified_devices,
                         )
 
+                unencrypted_mentions = content.get("org.matrix.msc3952.mentions")
+
                 # Reactions as of yet don't support encryption.
                 # Relevant spec proposal https://github.com/matrix-org/matrix-doc/pull/1849
                 if message_type != "m.reaction":
                     # Encrypt our content and change the message type.
                     message_type, content = self.encrypt(room_id, message_type, content)
+
+                if unencrypted_mentions:
+                    content["unencrypted"] = { "org.matrix.msc3952.mentions": unencrypted_mentions }
 
         method, path, data = Api.room_send(
             self.access_token, room_id, message_type, content, uuid
