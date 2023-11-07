@@ -1604,7 +1604,7 @@ class AsyncClient(Client):
                     message_type, content = self.encrypt(room_id, message_type, content)
 
                 if unencrypted_mentions:
-                    content["unencrypted"] = { "org.matrix.msc3952.mentions": unencrypted_mentions }
+                    content["unencrypted"] = { "m.mentions": unencrypted_mentions }
 
         method, path, data = Api.room_send(
             self.access_token, room_id, message_type, content, uuid
