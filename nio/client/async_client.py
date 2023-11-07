@@ -1595,7 +1595,7 @@ class AsyncClient(Client):
                             ignore_unverified_devices=ignore_unverified_devices,
                         )
 
-                unencrypted_mentions = content.get("org.matrix.msc3952.mentions")
+                unencrypted_mentions = content.get("m.mentions") or content.get("org.matrix.msc3952.mentions")
 
                 # Reactions as of yet don't support encryption.
                 # Relevant spec proposal https://github.com/matrix-org/matrix-doc/pull/1849
