@@ -223,6 +223,7 @@ from ..responses import (
 )
 from . import Client, ClientConfig
 from .base_client import logged_in, store_loaded
+import os
 
 _ShareGroupSessionT = Union[ShareGroupSessionError, ShareGroupSessionResponse]
 
@@ -1603,7 +1604,7 @@ class AsyncClient(Client):
                     # Encrypt our content and change the message type.
                     message_type, content = self.encrypt(room_id, message_type, content)
 
-                if unencrypted_mentions:
+                if os.environ.get("UNENCRYPTED_MENTIONS") and unencrypted_mentions:
                     content["unencrypted"] = { "m.mentions": unencrypted_mentions }
 
         method, path, data = Api.room_send(
