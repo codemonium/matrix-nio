@@ -223,7 +223,6 @@ from ..responses import (
 )
 from . import Client, ClientConfig
 from .base_client import logged_in, store_loaded
-import os
 
 _ShareGroupSessionT = Union[ShareGroupSessionError, ShareGroupSessionResponse]
 
@@ -1596,7 +1595,7 @@ class AsyncClient(Client):
                             ignore_unverified_devices=ignore_unverified_devices,
                         )
 
-                unencrypted_mentions = content.get("m.mentions") or content.get("org.matrix.msc3952.mentions")
+                mentions_metadata = content.get("m.mentions") or content.get("org.matrix.msc3952.mentions")
 
                 # Reactions as of yet don't support encryption.
                 # Relevant spec proposal https://github.com/matrix-org/matrix-doc/pull/1849
@@ -1604,8 +1603,8 @@ class AsyncClient(Client):
                     # Encrypt our content and change the message type.
                     message_type, content = self.encrypt(room_id, message_type, content)
 
-                if os.environ.get("UNENCRYPTED_MENTIONS") and unencrypted_mentions:
-                    content["unencrypted"] = { "m.mentions": unencrypted_mentions }
+                if self.pan_conf.unencrypted_mentions and mentions_metadata:
+                    content["unencrypted"] = { "m.mentions": mentions_metadata }
 
         method, path, data = Api.room_send(
             self.access_token, room_id, message_type, content, uuid
