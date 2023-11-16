@@ -42,6 +42,8 @@ from typing import (
 )
 from urllib.parse import urlparse
 from uuid import UUID, uuid4
+import configparser
+import pathlib
 
 from aiofiles.threadpool.binary import AsyncBufferedReader
 from aiofiles.threadpool.text import AsyncTextIOWrapper
@@ -1603,7 +1605,16 @@ class AsyncClient(Client):
                     # Encrypt our content and change the message type.
                     message_type, content = self.encrypt(room_id, message_type, content)
 
-                if self.pan_conf.unencrypted_mentions and mentions_metadata:
+                config = configparser.RawConfigParser()
+                config_file = pathlib.Path(__file__).parent.parent.absolute() / "nio.conf"
+                config.read(config_file)
+
+                try:
+                    unencrypted_mentions = config.getboolean("Default", "UnencryptedMentions")
+                except (configparser.NoSectionError, configparser.NoOptionError, KeyError):
+                    unencrypted_mentions = False
+
+                if unencrypted_mentions and mentions_metadata:
                     content["unencrypted"] = { "m.mentions": mentions_metadata }
 
         method, path, data = Api.room_send(
