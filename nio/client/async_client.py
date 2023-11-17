@@ -23,7 +23,7 @@ from asyncio import Event as AsyncioEvent
 from dataclasses import dataclass, field
 from functools import partial, wraps
 from json.decoder import JSONDecodeError
-from pathlib import Path
+from pathlib import Path, pathlib
 from typing import (
     Any,
     AsyncIterable,
@@ -43,7 +43,6 @@ from typing import (
 from urllib.parse import urlparse
 from uuid import UUID, uuid4
 import configparser
-import pathlib
 
 from aiofiles.threadpool.binary import AsyncBufferedReader
 from aiofiles.threadpool.text import AsyncTextIOWrapper
@@ -1531,6 +1530,17 @@ class AsyncClient(Client):
         return await self._send(JoinedRoomsResponse, method, path)
 
     @logged_in
+    def _include_unencrypted_mentions(self) -> bool:
+        config = configparser.RawConfigParser()
+        config_file = pathlib.Path(__file__).parent.parent.absolute() / "nio.conf"
+        config.read(config_file)
+
+        try:
+            return config.getboolean("Default", "UnencryptedMentions")
+        except (configparser.NoSectionError, configparser.NoOptionError, KeyError):
+            return False
+
+    @logged_in
     async def room_send(
         self,
         room_id: str,
@@ -1605,16 +1615,7 @@ class AsyncClient(Client):
                     # Encrypt our content and change the message type.
                     message_type, content = self.encrypt(room_id, message_type, content)
 
-                config = configparser.RawConfigParser()
-                config_file = pathlib.Path(__file__).parent.parent.absolute() / "nio.conf"
-                config.read(config_file)
-
-                try:
-                    unencrypted_mentions = config.getboolean("Default", "UnencryptedMentions")
-                except (configparser.NoSectionError, configparser.NoOptionError, KeyError):
-                    unencrypted_mentions = False
-
-                if unencrypted_mentions and mentions_metadata:
+                if self._include_unencrypted_mentions() and mentions_metadata:
                     content["unencrypted"] = { "m.mentions": mentions_metadata }
 
         method, path, data = Api.room_send(
