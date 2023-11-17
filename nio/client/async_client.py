@@ -23,7 +23,7 @@ from asyncio import Event as AsyncioEvent
 from dataclasses import dataclass, field
 from functools import partial, wraps
 from json.decoder import JSONDecodeError
-from pathlib import Path, pathlib
+import pathlib
 from typing import (
     Any,
     AsyncIterable,
