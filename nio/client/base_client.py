@@ -207,6 +207,7 @@ class Client:
         self.access_token = ""  # type: str
         self.next_batch = ""
         self.loaded_sync_token = ""
+        self.next_batch_to_device = None
 
         self.rooms: Dict[str, MatrixRoom] = dict()
         self.invited_rooms: Dict[str, MatrixInvitedRoom] = dict()
@@ -620,6 +621,56 @@ class Client:
 
         assert self.olm
         return self.olm.decrypt_megolm_event(event)
+
+    def _should_handle_to_device(self, next_batch: Any) -> bool:
+        """Determine whether or not to call handle_to_device_event.
+
+        It also keeps the next_batch_to_device instance variable up-to-date.
+
+        Both matrix-nio and pantalaimon handle to-device events. This method
+        uses next_batch_to_device to track whether the to-device events in the
+        sync response being handled have already been handled.
+
+        Being unable to extract the to_device_key value is unexpected, so we
+        log a warning. However, to prevent clients from giving up trying to
+        decrypt events, we must let them proceed even if they cannot use
+        next_batch_to_device.
+
+        Args:
+            next_batch (Any): Expected to be a Synapse stream token
+                (e.g., s0_1_2_3_4_5_6_7_8_9).
+
+        Returns False if the current value of next_batch_to_device equals the
+        value obtained from the given next_batch.
+
+        Returns True if the current value of next_batch_to_device does not
+        equal the value obtained from the given next_batch, or it is not
+        possible to extract the to_device_key value from the given next_batch.
+        """
+        WARNING = "Could not extract to_device_key value from next_batch"
+
+        if not isinstance(next_batch, str):
+            logger.warn(WARNING)
+            return True
+
+        tokenized_next_batch = str.split(next_batch, "_")
+        if len(tokenized_next_batch) != 10:
+            logger.warn(WARNING)
+            return True
+
+        try:
+            # https://github.com/matrix-org/synapse/blob/v1.87.0/synapse/types/__init__.py#L680-L695
+            TO_DEVICE_INDEX = 6
+            next_batch_to_device = int(tokenized_next_batch[TO_DEVICE_INDEX])
+        except ValueError:
+            logger.warn(WARNING)
+            return True
+
+        if self.next_batch_to_device == next_batch_to_device:
+            return False
+
+        self.next_batch_to_device = next_batch_to_device
+        return True
 
     def _handle_decrypt_to_device(
         self, to_device_event: ToDeviceEvent

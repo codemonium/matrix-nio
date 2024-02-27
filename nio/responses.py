@@ -181,7 +181,7 @@ def verify(schema, error_class, pass_arguments=True):
         @wraps(f)
         def wrapper(cls, parsed_dict, *args, **kwargs):
             try:
-                logger.info("Validating response schema")
+                logger.debug("Validating response schema")
                 validate_json(parsed_dict, schema)
             except (SchemaError, ValidationError) as e:
                 logger.warn("Error validating response: " + str(e.message))

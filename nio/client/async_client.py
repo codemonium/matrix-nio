@@ -559,6 +559,9 @@ class AsyncClient(Client):
                 await execute_callback(cb.func, event)
 
     async def _handle_to_device(self, response: SyncResponse):
+        if not self._should_handle_to_device(response.next_batch):
+            return
+
         decrypted_to_device = []
 
         for index, to_device_event in enumerate(response.to_device_events):
