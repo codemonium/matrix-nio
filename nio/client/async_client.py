@@ -18,6 +18,7 @@
 import asyncio
 import io
 import json
+import random
 import warnings
 from asyncio import Event as AsyncioEvent
 from dataclasses import dataclass, field
@@ -1234,7 +1235,9 @@ class AsyncClient(Client):
                 self.synced.clear()
 
                 if loop_sleep_time:
-                    await asyncio.sleep(loop_sleep_time / 1000)
+                    await asyncio.sleep(
+                        random.randint(loop_sleep_time, loop_sleep_time + 10000) / 1000
+                    )
 
             except asyncio.CancelledError:
                 for task in tasks:
