@@ -43,7 +43,6 @@ from typing import (
 from urllib.parse import urlparse
 from uuid import UUID, uuid4
 import configparser
-
 from aiofiles.threadpool.binary import AsyncBufferedReader
 from aiofiles.threadpool.text import AsyncTextIOWrapper
 from aiohttp import (
@@ -56,6 +55,7 @@ from aiohttp import (
 from aiohttp.client_exceptions import ClientConnectionError
 from aiohttp.connector import Connection
 from aiohttp_socks import ProxyConnector
+from logbook import Logger
 
 from ..api import (
     Api,
@@ -92,6 +92,7 @@ from ..exceptions import (
     SendRetryError,
     TransferCancelledError,
 )
+from ..log import logger_group
 from ..monitors import TransferMonitor
 from ..responses import (
     ContentRepositoryConfigError,
@@ -224,6 +225,9 @@ from ..responses import (
 )
 from . import Client, ClientConfig
 from .base_client import logged_in, store_loaded
+
+logger = Logger("nio.client")
+logger_group.add_logger(logger)
 
 _ShareGroupSessionT = Union[ShareGroupSessionError, ShareGroupSessionResponse]
 
@@ -2321,7 +2325,7 @@ class AsyncClient(Client):
                                 )
                             )
                         if no_device:
-                            raise LocalProtocolError(f"No device found for {user_id}")
+                            logger.warn(f"No device found for {user_id}")
 
         method, path, data = Api.room_invite(
             self.access_token,
